@@ -1,4 +1,5 @@
 import * as net from 'node:net';
+import * as fs from 'fs'
 const server = net.createServer((socket) => {
     socket.on('data', (data) => {
         const request = data.toString();
@@ -16,6 +17,26 @@ const server = net.createServer((socket) => {
                 response = 'HTTP/1.1 200 OK\r\n\r\n'
                 changeResponse(response)
                 break;
+            }
+            case 'files': {
+                const fileName = path.split('/')[2]
+                let response:string;
+                if(fs.existsSync(fileName))
+                {
+                    try{
+                        const data = fs.readFileSync(fileName) 
+                        response = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${data.length}\r\n\r\n${data}`
+                        changeResponse(response)
+                    }catch(err:any)
+                    {
+                        console.log(err)
+                    }
+                }
+                else{
+                    response = `HTTP/1.1 404 Not Found\r\n\r\n`
+                    changeResponse(response)
+                }
+                
             }
             case 'echo': {
                 const message = path.split('/')[2]
