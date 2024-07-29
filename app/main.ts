@@ -1,5 +1,6 @@
 import * as net from 'node:net';
 import * as fs from 'fs'
+import * as pathlib from 'path';
 const server = net.createServer((socket) => {
     socket.on('data', (data) => {
         const request = data.toString();
@@ -20,6 +21,7 @@ const server = net.createServer((socket) => {
             }
             case 'files': {
                 const fileName = path.split('/')[2]
+                const filePath = pathlib.join(__dirname, fileName);
                 console.log(fileName)
                 let response:string;
                 if(fs.existsSync(fileName))
