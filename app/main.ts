@@ -6,6 +6,7 @@ export default class HTTPHandler {
     constructor(directoryPath: string) {
         this.directoryPath = directoryPath;
     }
+    
     private extractHeaders(request: string): { [key: string]: string } {
         const headers: { [key: string]: string } = {};
         const lines = request.split('\r\n');
@@ -82,23 +83,16 @@ export default class HTTPHandler {
             let response;
             switch (path[0]) {
                 case 'echo':
-                    // Echo back path[1]
-                    zlib.gzip(path[0],(error,buffer)=>{
-                        if(error)console.log(error)
-                        else
+                    response = this.formHTTPResponse(200, 'OK', 
+                        zlib.gzipSync(path[0]).toString(), 
                         {
-                            response = this.formHTTPResponse(200, 'OK', 
-                                buffer.toString('base64'), 
-                                {
-                                    'Content-Type': 'text/plain',
-                                    ...(isValidContentEncoding && {
-                                        //'Content-Encoding': headers['Accept-Encoding'],
-                                        'Content-Encoding': 'gzip',
-                                    }),
-                                }
-                            );
+                            'Content-Type': 'text/plain',
+                            ...(isValidContentEncoding && {
+                                //'Content-Encoding': headers['Accept-Encoding'],
+                                'Content-Encoding': 'gzip',
+                            }),
                         }
-                    })
+                    ); 
                     break;
                 case 'user-agent':
                     // Echo back the User-Agent header
