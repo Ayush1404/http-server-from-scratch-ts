@@ -1,109 +1,150 @@
-import * as net from 'node:net';
-import * as fs from 'fs'
-import * as pathlib from 'path';
-const server = net.createServer((socket) => {
-    socket.on('data', (data) => {
-        const request = data.toString();
-        console.log(request);
-        const method = request.split(' ')[0]
-        const path = request.split(' ')[1];
-        console.log(path.split('/')[1])
-        const params = path.split('/')[1];
-        let response: string;
-        function changeResponse(response: string): void {
-            socket.write(response);
-            socket.end();
-        }
-        switch(method) {
-            case 'POST' : {
-                switch(params){
-                    case 'files':{
-                        const fileName = path.split('/')[2]
-                        console.log(process.argv)
-                        const args = process.argv.slice(3)
-                        console.log(args)
-                        const filePath = pathlib.join(args[0], fileName);
-                        const req = request.split('\r\n')
-                        const content = req[req.length - 1]
-                        console.log(filePath)
-                        console.log(fileName)
-                        console.log(content)
-                        try{
-                            const data = fs.writeFileSync(filePath,content)
-                            console.log(data)
-                            response = `HTTP/1.1 201 Created\r\n\r\n`
-                            changeResponse(response)
-                        }catch(err:any)
-                        {
-                            console.log(err)
-                        }
-                    }
-                        
-                }
+import { Socket } from 'net';
+import * as fs from 'fs';
+export default class HTTPHandler {
+    private readonly directoryPath: string;
+    constructor(directoryPath: string) {
+        this.directoryPath = directoryPath;
+    }
+    private extractHeaders(request: string): { [key: string]: string } {
+        const headers: { [key: string]: string } = {};
+        const lines = request.split('\r\n');
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i] === '') {
+                break;
             }
-            case 'GET' :{
-                switch (params) {
-                    case '': {
-                        response = 'HTTP/1.1 200 OK\r\n\r\n'
-                        changeResponse(response)
-                        break;
-                    }
-                    case 'files': {
-                        const fileName = path.split('/')[2]
-                        console.log(process.argv)
-                        const args = process.argv.slice(3)
-                        console.log(args)
-                        const filePath = pathlib.join(args[0], fileName);
-                        console.log(filePath)
-                        console.log(fileName)
-                        let response:string;
-                        if(fs.existsSync(filePath))
-                        {
-                            try{
-                                const data = fs.readFileSync(filePath) 
-                                console.log(data)
-                                response = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${data.length}\r\n\r\n${data}`
-                                changeResponse(response)
-                            }catch(err:any)
-                            {
-                                console.log(err)
-                            }
-                        }
-                        else{
-                            response = `HTTP/1.1 404 Not Found\r\n\r\n`
-                            changeResponse(response)
-                        }
-                        
-                    }
-                    case 'echo': {
-                        const encoding = request.split('Accept-Encoding: ')[1]?.split('\r\n')[0]
-                        
-                        const message = path.split('/')[2]
-                        response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n${encoding === 'gzip' ? 'Content-Encoding: gzip\r\n' :''}Content-Length: ${message.length}\r\n\r\n${message}`
-                        changeResponse(response)
-                        break;
-                    }
-                    case 'user-agent': {
-                        const userAgent = request.split('User-Agent: ')[1].split('\r\n')[0]
-                        response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`
-                        changeResponse(response)
-                        break;
-                    }
-                    default: {
-                        response = 'HTTP/1.1 404 Not Found\r\n\r\n'
-                        changeResponse(response)
-                        break;
-                    }
-                }
+            const [key, value] = lines[i].split(': ');
+            headers[key] = value;
+        }
+        return headers;
+    }
+    private extractPath(request: string): {
+        method: string;
+        path: string[];
+        protocol: string;
+    } {
+        const lines = request.split('\r\n');
+        const [method, path, protocol] = lines[0].split(' ');
+        return {
+            method,
+            path: path.split('/').filter((value) => value !== ''),
+            protocol,
+        };
+    }
+    private extractBody(request: string): string {
+        const lines = request.split('\r\n');
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i] === '') {
+                return lines.slice(i + 1).join('\r\n');
             }
         }
-        
-        socket.end()
-    })
-});
-// You can use print statements as follows for debugging, they'll be visible when running tests.
-console.log("Logs from your program will appear here!");
-// Uncomment this to pass the first stage
-server.listen(4221, 'localhost', () => {
-    console.log('Server is running on port 4221');
-});
+        return '';
+    }
+    private formHTTPResponse(
+        statusCode: number,
+        statusString?: string,
+        body?: string,
+        headers?: { [key: string]: string },
+    ): string {
+        let response = `HTTP/1.1 ${statusCode} ${statusString || ''}\r\n`;
+        if (headers) {
+            for (const key in headers) {
+                response += `${key}: ${headers[key]}\r\n`;
+            }
+        }
+        if (body) {
+            response += `Content-Length: ${body.length}\r\n`;
+            response += '\r\n';
+            response += body;
+        }
+        response += '\r\n';
+        return response;
+    }
+    handleRawRequest(request: Socket): void {
+        console.log('Received request');
+        request.on('data', (data) => {
+            const requestString = data.toString();
+            const headers = this.extractHeaders(requestString);
+            const { method, path, protocol } = this.extractPath(requestString);
+            const body = this.extractBody(requestString);
+            const isValidContentEncoding =
+                headers['Accept-Encoding'] === 'gzip' ||
+                headers['Accept-Encoding'] === 'deflate' ||
+                headers['Accept-Encoding'] === 'br' ||
+                headers['Accept-Encoding'] === 'zstd';
+            console.log('Request headers:', headers);
+            console.log('Request method:', method);
+            console.log('Request path:', path);
+            console.log('Request protocol:', protocol);
+            console.log('Request body:', body);
+            let response;
+            switch (path[0]) {
+                case 'echo':
+                    // Echo back path[1]
+                    response = this.formHTTPResponse(200, 'OK', path[1], {
+                        'Content-Type': 'text/plain',
+                        ...(isValidContentEncoding && {
+                            'Content-Encoding': headers['Accept-Encoding'],
+                        }),
+                    });
+                    break;
+                case 'user-agent':
+                    // Echo back the User-Agent header
+                    response = this.formHTTPResponse(
+                        200,
+                        'OK',
+                        headers['User-Agent'],
+                        {
+                            'Content-Type': 'text/plain',
+                        },
+                    );
+                    break;
+                case 'files': {
+                    if (method === 'GET') {
+                        // Get the filename from path[1]
+                        const filename = path[1];
+                        // Do we have a file in the directory with that name?
+                        const dir = fs.readdirSync(this.directoryPath);
+                        if (dir.includes(filename)) {
+                            // If we do, read it and send it back
+                            const file = fs.readFileSync(
+                                `${this.directoryPath}/${filename}`,
+                            );
+                            response = this.formHTTPResponse(
+                                200,
+                                'OK',
+                                file.toString(),
+                                {
+                                    'Content-Type': 'application/octet-stream',
+                                },
+                            );
+                        } else {
+                            // If we don't, send back a 404
+                            response = this.formHTTPResponse(404, 'Not Found');
+                        }
+                    } else if (method === 'POST') {
+                        // Write the body to a file with the name path[1]
+                        const filename = path[1];
+                        fs.writeFileSync(
+                            `${this.directoryPath}/${filename}`,
+                            body,
+                        );
+                        response = this.formHTTPResponse(201, 'Created');
+                    }
+                    break;
+                }
+                default:
+                    if (path.length === 1) {
+                        response = this.formHTTPResponse(404, 'Not Found');
+                    } else {
+                        response = this.formHTTPResponse(200, 'OK', path[1], {
+                            'Content-Type': 'text/plain',
+                        });
+                    }
+            }
+            console.log('Sending response:', response);
+            if(response)request.write(response);
+            request.end();
+            console.log('Sent response and closed connection');
+        });
+    }
+}
