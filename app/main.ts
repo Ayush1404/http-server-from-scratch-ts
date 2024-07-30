@@ -68,7 +68,7 @@ export default class HTTPHandler {
             const headers = this.extractHeaders(requestString);
             const { method, path, protocol } = this.extractPath(requestString);
             const body = this.extractBody(requestString);
-
+            let zipped:Buffer|null = null
             const isValidContentEncoding = headers['Accept-Encoding']?.includes('gzip')
             // const isValidContentEncoding =
             //     headers['Accept-Encoding'] === 'gzip' ||
@@ -83,8 +83,10 @@ export default class HTTPHandler {
             let response;
             switch (path[0]) {
                 case 'echo':
+                    const buffer = Buffer.from(path[1], 'utf8');
+                    zipped = zlib.gzipSync(buffer);
                     response = this.formHTTPResponse(200, 'OK', 
-                        zlib.gzipSync(Buffer.from(path[1],'utf8')).toString(), 
+                        zipped.toString(), 
                         {
                             'Content-Type': 'text/plain',
                             ...(isValidContentEncoding && {
@@ -150,6 +152,7 @@ export default class HTTPHandler {
             }
             console.log('Sending response:', response);
             if(response)request.write(response);
+            if(zipped)request.write(zipped)
             request.end();
             console.log('Sent response and closed connection');
         });
