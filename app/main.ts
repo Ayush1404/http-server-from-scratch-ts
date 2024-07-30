@@ -84,7 +84,7 @@ export default class HTTPHandler {
             switch (path[0]) {
                 case 'echo':
                     response = this.formHTTPResponse(200, 'OK', 
-                        zlib.gzipSync(Buffer.from(path[1])).toString('base64'), 
+                        zlib.gzipSync(Buffer.from(path[1])).toString(), 
                         {
                             'Content-Type': 'text/plain',
                             ...(isValidContentEncoding && {
