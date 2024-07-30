@@ -67,11 +67,13 @@ export default class HTTPHandler {
             const headers = this.extractHeaders(requestString);
             const { method, path, protocol } = this.extractPath(requestString);
             const body = this.extractBody(requestString);
-            const isValidContentEncoding =
-                headers['Accept-Encoding'] === 'gzip' ||
-                headers['Accept-Encoding'] === 'deflate' ||
-                headers['Accept-Encoding'] === 'br' ||
-                headers['Accept-Encoding'] === 'zstd';
+
+            const isValidContentEncoding = headers['Accept-Encoding']?.includes('gzip')
+            // const isValidContentEncoding =
+            //     headers['Accept-Encoding'] === 'gzip' ||
+            //     headers['Accept-Encoding'] === 'deflate' ||
+            //     headers['Accept-Encoding'] === 'br' ||
+            //     headers['Accept-Encoding'] === 'zstd';
             console.log('Request headers:', headers);
             console.log('Request method:', method);
             console.log('Request path:', path);
@@ -85,7 +87,8 @@ export default class HTTPHandler {
                     response = this.formHTTPResponse(200, 'OK', path[1], {
                         'Content-Type': 'text/plain',
                         ...(isValidContentEncoding && {
-                            'Content-Encoding': headers['Accept-Encoding'],
+                            //'Content-Encoding': headers['Accept-Encoding'],
+                            'Content-Encoding': 'gzip',
                         }),
                     });
                     break;
