@@ -88,7 +88,7 @@ export default class HTTPHandler {
                         else
                         {
                             response = this.formHTTPResponse(200, 'OK', 
-                                buffer.toString(), 
+                                buffer.toString('base64'), 
                                 {
                                     'Content-Type': 'text/plain',
                                     ...(isValidContentEncoding && {
