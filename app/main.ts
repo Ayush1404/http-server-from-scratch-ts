@@ -84,11 +84,22 @@ export default class HTTPHandler {
             switch (path[0]) {
                 case 'echo':
                     console.log(isValidContentEncoding)
-                    zipped = zlib.gzipSync(path[1]);
-                    const res = `HTTP/1.1 200 OK\r\n${isValidContentEncoding ? 'Content-Encoding: gzip\r\n' :''}Content-Type: text/plain\r\nContent-Length: ${zipped.length}\r\n\r\n`
-                    request.write(res)
-                    request.write(zipped)
-                    response = null
+                    if  (isValidContentEncoding){
+                        zipped = zlib.gzipSync(path[1]);
+                        const res = `HTTP/1.1 200 OK\r\n${isValidContentEncoding ? 'Content-Encoding: gzip\r\n' :''}Content-Type: text/plain\r\nContent-Length: ${zipped.length}\r\n\r\n`
+                        request.write(res)
+                        request.write(zipped)
+                        response = null
+                    }
+                    else response = this.formHTTPResponse(200, 'OK', path[1], {
+                        'Content-Type': 'text/plain',
+                        ...(isValidContentEncoding ? {
+                            //'Content-Encoding': headers['Accept-Encoding'],
+                            'Content-Encoding': 'gzip',
+                        }:{}),
+                    });
+
+                    
                     break;
                 case 'user-agent':
                     // Echo back the User-Agent header
