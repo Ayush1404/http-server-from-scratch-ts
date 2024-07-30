@@ -21,7 +21,7 @@ const server = net.createServer((socket) => {
             }
             case 'files': {
                 const fileName = path.split('/')[2]
-                const filePath = pathlib.join(__dirname, fileName);
+                const filePath = pathlib.join('/tmp/', fileName);
                 console.log(filePath)
                 console.log(fileName)
                 let response:string;
