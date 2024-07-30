@@ -28,10 +28,10 @@ const server = net.createServer((socket) => {
                 console.log(filePath)
                 console.log(fileName)
                 let response:string;
-                if(fs.existsSync(fileName))
+                if(fs.existsSync(filePath))
                 {
                     try{
-                        const data = fs.readFileSync(fileName) 
+                        const data = fs.readFileSync(filePath) 
                         console.log(data)
                         response = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${data.length}\r\n\r\n${data}`
                         changeResponse(response)
