@@ -1,5 +1,5 @@
 import * as net from 'net';
-
+import * as zlib from 'zlib'
 import * as fs from 'fs';
 export default class HTTPHandler {
     private readonly directoryPath: string;
@@ -83,14 +83,22 @@ export default class HTTPHandler {
             switch (path[0]) {
                 case 'echo':
                     // Echo back path[1]
-                    console.log("encoding validity:",isValidContentEncoding)
-                    response = this.formHTTPResponse(200, 'OK', path[1], {
-                        'Content-Type': 'text/plain',
-                        ...(isValidContentEncoding && {
-                            //'Content-Encoding': headers['Accept-Encoding'],
-                            'Content-Encoding': 'gzip',
-                        }),
-                    });
+                    zlib.gzip(path[0],(error,buffer)=>{
+                        if(error)console.log(error)
+                        else
+                        {
+                            response = this.formHTTPResponse(200, 'OK', 
+                                buffer.toString(), 
+                                {
+                                    'Content-Type': 'text/plain',
+                                    ...(isValidContentEncoding && {
+                                        //'Content-Encoding': headers['Accept-Encoding'],
+                                        'Content-Encoding': 'gzip',
+                                    }),
+                                }
+                            );
+                        }
+                    })
                     break;
                 case 'user-agent':
                     // Echo back the User-Agent header
