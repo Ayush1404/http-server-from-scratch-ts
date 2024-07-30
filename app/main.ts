@@ -83,18 +83,11 @@ export default class HTTPHandler {
             let response;
             switch (path[0]) {
                 case 'echo':
-                    const buffer = Buffer.from(path[1], 'utf8');
-                    zipped = zlib.gzipSync(buffer);
-                    response = this.formHTTPResponse(200, 'OK', 
-                        zipped.toString(), 
-                        {
-                            'Content-Type': 'text/plain',
-                            ...(isValidContentEncoding && {
-                                //'Content-Encoding': headers['Accept-Encoding'],
-                                'Content-Encoding': 'gzip',
-                            }),
-                        }
-                    ); 
+                    zipped = zlib.gzipSync(path[1]);
+                    const res = `HTTP/1.1 200 OK\r\n${isValidContentEncoding ? 'gzip' :''}Content-Type: text/plain\r\nContent-Length: ${zipped.length}\r\n\r\n`
+                    request.write(res)
+                    request.write(zipped)
+                    response = null
                     break;
                 case 'user-agent':
                     // Echo back the User-Agent header
@@ -152,7 +145,6 @@ export default class HTTPHandler {
             }
             console.log('Sending response:', response);
             if(response)request.write(response);
-            if(zipped)request.write(zipped)
             request.end();
             console.log('Sent response and closed connection');
         });
