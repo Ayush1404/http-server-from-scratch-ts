@@ -81,6 +81,7 @@ export default class HTTPHandler {
             switch (path[0]) {
                 case 'echo':
                     // Echo back path[1]
+                    console.log("encoding validity:",isValidContentEncoding)
                     response = this.formHTTPResponse(200, 'OK', path[1], {
                         'Content-Type': 'text/plain',
                         ...(isValidContentEncoding && {
