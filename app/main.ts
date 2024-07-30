@@ -85,7 +85,7 @@ export default class HTTPHandler {
                 case 'echo':
                     console.log(isValidContentEncoding)
                     zipped = zlib.gzipSync(path[1]);
-                    const res = `HTTP/1.1 200 OK\r\n${isValidContentEncoding ? 'Content-Encoding: gzip' :''}Content-Type: text/plain\r\nContent-Length: ${zipped.length}\r\n\r\n`
+                    const res = `HTTP/1.1 200 OK\r\n${isValidContentEncoding ? 'Content-Encoding: gzip\r\n' :''}Content-Type: text/plain\r\nContent-Length: ${zipped.length}\r\n\r\n`
                     request.write(res)
                     request.write(zipped)
                     response = null
