@@ -1,4 +1,5 @@
-import { Socket } from 'net';
+import * as net from 'net';
+
 import * as fs from 'fs';
 export default class HTTPHandler {
     private readonly directoryPath: string;
@@ -59,7 +60,7 @@ export default class HTTPHandler {
         response += '\r\n';
         return response;
     }
-    handleRawRequest(request: Socket): void {
+    handleRawRequest(request: net.Socket): void {
         console.log('Received request');
         request.on('data', (data) => {
             const requestString = data.toString();
@@ -148,3 +149,9 @@ export default class HTTPHandler {
         });
     }
 }
+const args = process.argv
+const directory = args.slice(3)[0]
+const handler = new HTTPHandler(directory)
+const server =  net.createServer((socket)=>{
+    handler.handleRawRequest(socket)
+})
