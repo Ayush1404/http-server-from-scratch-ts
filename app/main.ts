@@ -76,8 +76,9 @@ const server = net.createServer((socket) => {
                         
                     }
                     case 'echo': {
+                        const encoding = request.split('Accept-Encoding: ')[1].split('\r\n')[0]
                         const message = path.split('/')[2]
-                        response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${message.length}\r\n\r\n${message}`
+                        response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n${encoding === 'gzip' ? 'Content-Encoding: gzip\r\n' :''}Content-Length: ${message.length}\r\n\r\n${message}`
                         changeResponse(response)
                         break;
                     }
